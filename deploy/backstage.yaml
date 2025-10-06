@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  labels:
+    app.kubernetes.io/name: backstage
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 7007
+  selector:
+    app.kubernetes.io/name: backstage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  labels:
+    app.kubernetes.io/name: backstage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backstage
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backstage
+    spec:
+      containers:
+        - name: backend
+          image: povir/backstage-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7007
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: APP_CONFIG_app_baseUrl
+              value: https://backstage.njordops.net
+            - name: APP_CONFIG_backend_baseUrl
+              value: https://backstage.njordops.net
+            - name: APP_CONFIG_backend_listen
+              value: ':7007'
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_PASSWORD
+            - name: BACKEND_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: BACKEND_SECRET
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: GITHUB_CLIENT_ID
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: GITHUB_CLIENT_SECRET
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: GITHUB_TOKEN
+            - name: GITHUB_ALLOWED_ORGS
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: GITHUB_ALLOWED_ORGS
+      # no volumes; configs are included in the image bundle
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-app-config
+data:
+  app-config.yaml: |
+    app:
+      title: Scaffolded Backstage App
+      baseUrl: https://backstage.njordops.net
+    backend:
+      baseUrl: https://backstage.njordops.net
+      listen:
+        port: 7007
+      cors:
+        origin: https://backstage.njordops.net
+        methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+        credentials: true
+    integrations:
+      github:
+        - host: github.com
+          token: ${GITHUB_TOKEN}
+    auth:
+      providers:
+        github:
+          development:
+            clientId: ${GITHUB_CLIENT_ID}
+            clientSecret: ${GITHUB_CLIENT_SECRET}
+          signIn:
+            resolvers:
+              - resolver: usernameMatchingUserEntityName
+          options:
+            allowedOrganizations: ${GITHUB_ALLOWED_ORGS}
+  app-config.production.yaml: |
+    app:
+      baseUrl: https://backstage.njordops.net
+    backend:
+      baseUrl: https://backstage.njordops.net
+      listen: ':7007'
+      auth:
+        keys:
+          - secret: ${BACKEND_SECRET}
+      database:
+        client: pg
+        connection:
+          host: ${POSTGRES_HOST}
+          port: ${POSTGRES_PORT}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+    integrations:
+      github:
+        - host: github.com
+          token: ${GITHUB_TOKEN}
+    auth:
+      providers:
+        github:
+          development:
+            clientId: ${GITHUB_CLIENT_ID}
+            clientSecret: ${GITHUB_CLIENT_SECRET}
+          signIn:
+            resolvers:
+              - resolver: usernameMatchingUserEntityName
+          options:
+            allowedOrganizations: ${GITHUB_ALLOWED_ORGS}
+

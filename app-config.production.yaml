@@ -1,17 +1,19 @@
 app:
   # Should be the same as backend.baseUrl when using the `app-backend` plugin.
-  baseUrl: http://localhost:7007
+  baseUrl: https://backstage.njordops.net
 
 backend:
   # Note that the baseUrl should be the URL that the browser and other clients
   # should use when communicating with the backend, i.e. it needs to be
   # reachable not just from within the backend host, but from all of your
-  # callers. When its value is "http://localhost:7007", it's strictly private
-  # and can't be reached by others.
-  baseUrl: http://localhost:7007
+  # callers.
+  baseUrl: https://backstage.njordops.net
   # The listener can also be expressed as a single <host>:<port> string. In this case we bind to
   # all interfaces, the most permissive setting. The right value depends on your specific deployment.
   listen: ':7007'
+  auth:
+    keys:
+      - secret: ${BACKEND_SECRET}
 
   # config options: https://node-postgres.com/apis/client
   database:
@@ -30,7 +32,17 @@ backend:
 
 auth:
   providers:
-    guest: {}
+    github:
+      # Backstage will use these for OAuth with GitHub
+      development:
+        clientId: ${GITHUB_CLIENT_ID}
+        clientSecret: ${GITHUB_CLIENT_SECRET}
+      signIn:
+        resolvers:
+          - resolver: usernameMatchingUserEntityName
+      # Restrict sign-in to members of these orgs
+      options:
+        allowedOrganizations: ${GITHUB_ALLOWED_ORGS}
 
 catalog:
   # Overrides the default list locations from app-config.yaml as these contain example data.
@@ -53,3 +65,8 @@ catalog:
       target: ./examples/org.yaml
       rules:
         - allow: [User, Group]
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
