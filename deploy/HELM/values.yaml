@@ -1,0 +1,31 @@
+namespace: backstage
+image:
+  repository: povir/backstage
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecret: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: backstage.njordops.net
+  tlsSecretName: backstage-tls
+
+service:
+  type: ClusterIP
+  port: 7007
+
+postgres:
+  enabled: true
+  storageSize: 5Gi
+  userSecret: postgres-secrets
+  db: backstage
+
+secrets:
+  backendSecretName: backstage-secrets
+  githubSecretName: github-oauth
+
+env:
+  APP_CONFIG_app_baseUrl: https://backstage.njordops.net
+  APP_CONFIG_backend_baseUrl: https://backstage.njordops.net
+  GITHUB_ALLOWED_ORGS: NjordOps
