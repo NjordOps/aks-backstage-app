@@ -1,6 +1,6 @@
 namespace: backstage
 image:
-  repository: povir/backstage
+  repository: maxregistry.azurecr.io/backstage:latest
   tag: latest
   pullPolicy: IfNotPresent
   pullSecret: ""
