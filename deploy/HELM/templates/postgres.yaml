@@ -1,8 +1,9 @@
+{{- if .Values.postgres.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: backstage
+  namespace: {{ .Values.namespace }}
 spec:
   ports:
     - port: 5432
@@ -15,7 +16,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: backstage
+  namespace: {{ .Values.namespace }}
 spec:
   serviceName: postgres
   replicas: 1
@@ -35,16 +36,16 @@ spec:
               name: postgres
           env:
             - name: POSTGRES_DB
-              value: backstage
+              value: {{ .Values.postgres.db | quote }}
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secrets
+                  name: {{ .Values.postgres.userSecret }}
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secrets
+                  name: {{ .Values.postgres.userSecret }}
                   key: POSTGRES_PASSWORD
           volumeMounts:
             - name: data
@@ -57,4 +58,5 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 5Gi
+            storage: {{ .Values.postgres.storageSize }}
+{{- end }}

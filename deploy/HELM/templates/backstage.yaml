@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: backstage
-  namespace: backstage
+  namespace: {{ .Values.namespace }}
 spec:
-  type: LoadBalancer
+  type: {{ .Values.service.type }}
   ports:
     - name: http
-      port: 7007
+      port: {{ .Values.service.port }}
       targetPort: 7007
   selector:
     app: backstage
@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backstage
-  namespace: backstage
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: 2
   selector:
@@ -27,54 +27,62 @@ spec:
       labels:
         app: backstage
     spec:
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
       containers:
         - name: backend
-          image: povir/backstage:latest
-          imagePullPolicy: IfNotPresent
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 7007
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/app-config.yaml
+              subPath: app-config.yaml
           env:
             - name: NODE_ENV
               value: production
             - name: APP_CONFIG_app_baseUrl
-              value: https://backstage.njordops.net
+              value: {{ .Values.env.APP_CONFIG_app_baseUrl | quote }}
             - name: APP_CONFIG_backend_baseUrl
-              value: https://backstage.njordops.net
+              value: {{ .Values.env.APP_CONFIG_backend_baseUrl | quote }}
             - name: BACKEND_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: backstage-secrets
+                  name: {{ .Values.secrets.backendSecretName }}
                   key: BACKEND_SECRET
             - name: POSTGRES_HOST
-              value: postgres.backstage.svc.cluster.local
+              value: postgres.{{ .Values.namespace }}.svc.cluster.local
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secrets
+                  name: {{ .Values.postgres.userSecret }}
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secrets
+                  name: {{ .Values.postgres.userSecret }}
                   key: POSTGRES_PASSWORD
             - name: GITHUB_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: github-oauth
+                  name: {{ .Values.secrets.githubSecretName }}
                   key: GITHUB_CLIENT_ID
             - name: GITHUB_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: github-oauth
+                  name: {{ .Values.secrets.githubSecretName }}
                   key: GITHUB_CLIENT_SECRET
             - name: GITHUB_ALLOWED_ORGS
-              value: NjordOps
+              value: {{ .Values.env.GITHUB_ALLOWED_ORGS | quote }}
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: github-oauth
+                  name: {{ .Values.secrets.githubSecretName }}
                   key: GITHUB_TOKEN
           readinessProbe:
             httpGet:
@@ -88,3 +96,7 @@ spec:
               port: 7007
             initialDelaySeconds: 30
             periodSeconds: 30
+      volumes:
+        - name: app-config
+          configMap:
+            name: app-config

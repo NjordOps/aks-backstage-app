@@ -2,8 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: backstage
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+  namespace: backstage
 spec:
   ingressClassName: nginx
   tls:
@@ -20,5 +19,4 @@ spec:
               service:
                 name: backstage
                 port:
-                  number: 80
-
+                  number: 7007
