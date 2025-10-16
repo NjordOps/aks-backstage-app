@@ -174,6 +174,13 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
+      - name: Prepare namespace for Helm ownership
+        run: |
+          kubectl get ns backstage >/dev/null 2>&1 || kubectl create ns backstage
+          kubectl label ns backstage app.kubernetes.io/managed-by=Helm --overwrite
+          kubectl annotate ns backstage meta.helm.sh/release-name=backstage --overwrite
+          kubectl annotate ns backstage meta.helm.sh/release-namespace=backstage --overwrite
+
       - name: Helm upgrade
         run: |
           IMAGE_REPO=$(echo "${{ steps.img.outputs.image }}" | cut -d':' -f1)
