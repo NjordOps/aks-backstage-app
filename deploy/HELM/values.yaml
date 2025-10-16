@@ -1,5 +1,5 @@
 namespace: backstage
-createNamespace: false
+createNamespace: true
 image:
   repository: maxregistry.azurecr.io/backstage:latest
   tag: latest
