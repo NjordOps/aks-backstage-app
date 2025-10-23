@@ -1,0 +1,53 @@
+  deploy:
+    name: Deploy to AKS via Helm
+    needs: build_and_push_image
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: max
+          cluster-name: max-demo
+
+      - name: Download image ref artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-ref
+
+      - name: Read image ref
+        id: img
+        run: echo "image=$(cat image.txt)" >> $GITHUB_OUTPUT
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Prepare namespace for Helm ownership
+        run: |
+          kubectl get ns backstage >/dev/null 2>&1 || kubectl create ns backstage
+          kubectl label ns backstage app.kubernetes.io/managed-by=Helm --overwrite
+          kubectl annotate ns backstage meta.helm.sh/release-name=backstage --overwrite
+          kubectl annotate ns backstage meta.helm.sh/release-namespace=backstage --overwrite
+
+      - name: Helm upgrade
+        run: |
+          IMAGE_REPO=$(echo "${{ steps.img.outputs.image }}" | cut -d':' -f1)
+          IMAGE_TAG=$(echo "${{ steps.img.outputs.image }}" | cut -d':' -f2)
+          helm upgrade --install $RELEASE_NAME $CHART_PATH \
+            --namespace backstage \
+            --create-namespace \
+            --set image.repository=$IMAGE_REPO \
+            --set image.tag=$IMAGE_TAG

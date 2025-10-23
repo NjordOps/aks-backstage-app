@@ -6,11 +6,11 @@ metadata:
 data:
   app-config.yaml: |
     app:
-      title: Scaffolded Backstage App
+      title: GitHub Actions with Helm Deployed Backstage
       baseUrl: {{ .Values.env.APP_CONFIG_app_baseUrl }}
 
     organization:
-      name: My Company
+      name: GitHub Actions with Helm Deployed Backstage
 
     backend:
       baseUrl: {{ .Values.env.APP_CONFIG_backend_baseUrl }}
