@@ -1,0 +1,47 @@
+app:
+  baseUrl: https://backstage.njordops.net
+
+backend:
+  baseUrl: https://backstage.njordops.net
+  listen: ':7007'
+  auth:
+    keys:
+      - secret: ${BACKEND_SECRET}
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+
+auth:
+  providers:
+    github:
+      development:
+        clientId: ${GITHUB_CLIENT_ID}
+        clientSecret: ${GITHUB_CLIENT_SECRET}
+      signIn:
+        resolvers:
+          - resolver: usernameMatchingUserEntityName
+      options:
+        allowedOrganizations: ${GITHUB_ALLOWED_ORGS}
+
+catalog:
+  locations:
+    - type: file
+      target: ./examples/entities.yaml
+    - type: file
+      target: ./examples/template/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ./examples/org.yaml
+      rules:
+        - allow: [User, Group]
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+

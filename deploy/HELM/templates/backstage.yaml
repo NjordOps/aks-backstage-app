@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      serviceAccountName: {{ default (printf "%s" "backstage") .Values.serviceAccount.name }}
+      imagePullSecrets:
+{{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      containers:
+        - name: backstage
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 7007
+          env:
+            - name: NODE_ENV
+              value: production
+{{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: "{{ $v }}"
+{{- end }}
+{{- if .Values.secretEnv.enabled }}
+            - name: BACKEND_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretEnv.name }}
+                  key: BACKEND_SECRET
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretEnv.name }}
+                  key: POSTGRES_PASSWORD
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretEnv.name }}
+                  key: GITHUB_CLIENT_SECRET
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretEnv.name }}
+                  key: GITHUB_TOKEN
+{{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+{{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+{{ toYaml .Values.livenessProbe | indent 12 }}
+{{- end }}
+{{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+{{ toYaml .Values.readinessProbe | indent 12 }}
+{{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.production.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: backstage-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ default (printf "%s" "backstage") .Values.serviceAccount.name }}
+  namespace: backstage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  selector:
+    app: backstage
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: 7007
+  type: {{ .Values.service.type }}
+---
+{{- if .Values.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backstage
+  namespace: backstage
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backstage
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+{{- end }}
+
