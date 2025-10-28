@@ -25,21 +25,19 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: ACR login
+      - name: Build image in ACR (no local Docker needed)
         uses: azure/cli@v2
         with:
           azcliversion: 2.63.0
           inlineScript: |
-            az acr login -n ${{ vars.ACR_NAME }}
+            az acr build \
+              --registry ${{ vars.ACR_NAME }} \
+              --image $REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+              .
 
       - name: Set image tag
         id: vars
-        run: echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-
-      - name: Build and push image
-        run: |
-          docker build -t $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }} .
-          docker push $REGISTRY/$IMAGE_NAME:${{ steps.vars.outputs.tag }}
+        run: echo "tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
 
       - name: Upload Helm values
         uses: actions/upload-artifact@v4
