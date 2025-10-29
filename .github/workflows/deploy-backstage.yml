@@ -207,3 +207,4 @@ jobs:
             --set env.GITHUB_CLIENT_ID='${{ secrets.GITHUB_CLIENT_ID }}' \
             --set acr.createPullSecret=false \
             --set tls.create=false
+            
