@@ -204,7 +204,12 @@ jobs:
             --set image.repository=$IMAGE_REPO \
             --set image.tag=$IMAGE_TAG \
             --set ingress.className=nginx \
+            --set secretEnv.enabled=false \
+            --set env.BACKEND_SECRET='${{ secrets.BACKEND_SECRET }}' \
+            --set env.POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
             --set env.GITHUB_CLIENT_ID='${{ secrets.GITHUB_CLIENT_ID }}' \
+            --set env.GITHUB_CLIENT_SECRET='${{ secrets.GITHUB_CLIENT_SECRET }}' \
+            --set env.GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}' \
             --set acr.createPullSecret=false \
             --set tls.create=false
             
