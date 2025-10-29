@@ -159,8 +159,8 @@ jobs:
       - name: Get AKS credentials
         uses: azure/aks-set-context@v4
         with:
-          resource-group: ${{ vars.AKS_RG }}
-          cluster-name: ${{ vars.AKS_NAME }}
+          resource-group: max
+          cluster-name: max-demo
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
