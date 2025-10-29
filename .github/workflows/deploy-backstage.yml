@@ -180,6 +180,19 @@ jobs:
           kubectl label ns backstage app.kubernetes.io/managed-by=Helm --overwrite
           kubectl annotate ns backstage meta.helm.sh/release-name=backstage --overwrite
           kubectl annotate ns backstage meta.helm.sh/release-namespace=backstage --overwrite
+          # ensure image pull secret exists
+          kubectl -n backstage create secret docker-registry acr-pull \
+            --docker-server=${{ env.REGISTRY_LOGIN_SERVER }} \
+            --docker-username='${{ secrets.ACR_USERNAME }}' \
+            --docker-password='${{ secrets.ACR_PASSWORD }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+          # ensure app secret exists for env consumption
+          kubectl -n backstage create secret generic backstage-env \
+            --from-literal=BACKEND_SECRET='${{ secrets.BACKEND_SECRET }}' \
+            --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+            --from-literal=GITHUB_CLIENT_SECRET='${{ secrets.GITHUB_CLIENT_SECRET }}' \
+            --from-literal=GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Helm upgrade
         run: |
@@ -189,4 +202,8 @@ jobs:
             --namespace backstage \
             --create-namespace \
             --set image.repository=$IMAGE_REPO \
-            --set image.tag=$IMAGE_TAG
+            --set image.tag=$IMAGE_TAG \
+            --set ingress.className=nginx \
+            --set env.GITHUB_CLIENT_ID='${{ secrets.GITHUB_CLIENT_ID }}' \
+            --set acr.createPullSecret=false \
+            --set tls.create=false
